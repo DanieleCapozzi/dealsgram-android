@@ -161,9 +161,9 @@
     <string name="DealsGram_DiscoverSubscription">Scopri l\'abbonamento</string>
     <string name="DealsGram_ConnectTitle">Collega il canale ad AutoDeals</string>
     <string name="DealsGram_ConnectText">Con il piano Free pubblichi 4 offerte al giorno con il tuo tag affiliato. Con l\'abbonamento, senza limiti.</string>
-    <string name="DealsGram_ConnectStep1">Aggiungi **%1$s** come amministratore del canale.</string>
-    <string name="DealsGram_ConnectStep2">Scrivi un messaggio nel canale e inoltralo al bot.</string>
-    <string name="DealsGram_ConnectStep3">Torna qui: le funzioni AutoDeals si attivano da sole.</string>
+    <string name="DealsGram_ConnectStep1">Apri **%1$s** e tocca **Aggiungi Canale**.</string>
+    <string name="DealsGram_ConnectStep2">Scegli il tuo canale e conferma i permessi che chiede Telegram.</string>
+    <string name="DealsGram_ConnectStep3">Torna qui: il canale si collega da solo, senza inoltrare messaggi.</string>
     <string name="DealsGram_OpenBot">Apri %1$s</string>
     <string name="DealsGram_FreeCard_one">Piano Free: oggi ti resta **%1$d** pubblicazione su %2$d.</string>
     <string name="DealsGram_FreeCard_other">Piano Free: oggi ti restano **%1$d** pubblicazioni su %2$d.</string>
@@ -345,5 +345,28 @@
     <string name="DealsGram_Queued">Offerta in coda: la pubblica l\'Autoposting V2 al prossimo orario.</string>
     <string name="DealsGram_QueuedPosition">Offerta in coda: la pubblica l\'Autoposting V2 al prossimo orario (posizione %1$d in coda).</string>
     <string name="DealsGram_QueuedChannels">Offerta in coda su %1$d canali: la pubblica l\'Autoposting V2 al prossimo orario.</string>
+    <string name="DealsGram_FirstStepsTitle">Primi passi</string>
+    <string name="DealsGram_FirstStepsText">DealsGram è Telegram con gli strumenti di AutoDeals nei tuoi canali. Ecco dove trovarli.</string>
+    <string name="DealsGram_FirstStepsTry">Da provare</string>
+    <string name="DealsGram_FirstStepsPasteTitle">Incolla un link nel canale</string>
+    <string name="DealsGram_FirstStepsPasteText">Invia un link Amazon o AliExpress: AutoDeals prepara il post e scegli su quali canali pubblicarlo.</string>
+    <string name="DealsGram_FirstStepsMenuTitle">Menu ⋮ del canale</string>
+    <string name="DealsGram_FirstStepsMenuText">Pubblica offerta, Post multiplo e Prossimi post, con la ricerca delle offerte.</string>
+    <string name="DealsGram_FirstStepsHoldTitle">Tieni premuto un post</string>
+    <string name="DealsGram_FirstStepsHoldText">Ripubblica sui tuoi canali un\'offerta vista altrove, con il tuo formato e il tuo tag affiliato.</string>
+    <string name="DealsGram_FirstStepsSettingsTitle">Impostazioni</string>
+    <string name="DealsGram_FirstStepsSettingsText">Abbonamento AutoDeals e Impostazioni DealsGram. Questa pagina la ritrovi lì.</string>
+    <string name="DealsGram_FirstStepsDone">Ho capito</string>
+    <string name="DealsGram_FirstStepsQueueText">La coda e i post programmati del canale: spostali, modificali o toglili dalla chat.</string>
+    <string name="DealsGram_FirstStepsSearchText">Cerca le offerte di AutoDeals con filtri e storico prezzi, poi pubblicale o mettile in coda.</string>
+    <string name="DealsGram_FirstStepsMultiText">Scegli più offerte dalla ricerca o incolla i loro link: un solo post con tutte.</string>
+    <string name="DealsGram_FirstStepsExpireText">Segna un\'offerta come terminata: AutoDeals aggiorna da solo il post nel canale.</string>
+    <string name="DealsGram_FollowTitle">Resta aggiornato</string>
+    <string name="DealsGram_FollowNewsText">Novità, guide e aggiornamenti di AutoDeals e DealsGram.</string>
+    <string name="DealsGram_FollowBotText">Il Bot per collegare i canali e gestire tutto.</string>
+    <string name="DealsGram_FollowJoin">Unisciti</string>
+    <string name="DealsGram_FollowJoined">Iscritto</string>
+    <string name="DealsGram_FollowStart">Avvia</string>
+    <string name="DealsGram_FollowStarted">Avviato</string>
     <!-- DealsGram: end -->
 </resources>

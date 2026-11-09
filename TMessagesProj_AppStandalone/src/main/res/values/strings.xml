@@ -238,9 +238,9 @@
     <string name="DealsGram_DiscoverSubscription">Discover the subscription</string>
     <string name="DealsGram_ConnectTitle">Link the channel to AutoDeals</string>
     <string name="DealsGram_ConnectText">With the Free plan you publish 4 deals a day with your affiliate tag. With a subscription, without limits.</string>
-    <string name="DealsGram_ConnectStep1">Add **%1$s** as an admin of the channel.</string>
-    <string name="DealsGram_ConnectStep2">Post a message in the channel and forward it to the bot.</string>
-    <string name="DealsGram_ConnectStep3">Come back here: the AutoDeals features turn on by themselves.</string>
+    <string name="DealsGram_ConnectStep1">Open **%1$s** and tap **Add Channel**.</string>
+    <string name="DealsGram_ConnectStep2">Choose your channel and confirm the permissions Telegram asks for.</string>
+    <string name="DealsGram_ConnectStep3">Come back here: the channel is linked by itself, no message to forward.</string>
     <string name="DealsGram_OpenBot">Open %1$s</string>
     <string name="DealsGram_FreeCard_one">Free plan: **%1$d** post left today out of %2$d.</string>
     <string name="DealsGram_FreeCard_other">Free plan: **%1$d** posts left today out of %2$d.</string>
@@ -422,5 +422,28 @@
     <string name="DealsGram_Queued">Deal added to the queue: Autoposting V2 publishes it at the next time slot.</string>
     <string name="DealsGram_QueuedPosition">Deal added to the queue: Autoposting V2 publishes it at the next time slot (position %1$d in the queue).</string>
     <string name="DealsGram_QueuedChannels">Deal added to the queue on %1$d channels: Autoposting V2 publishes it at the next time slot.</string>
+    <string name="DealsGram_FirstStepsTitle">First steps</string>
+    <string name="DealsGram_FirstStepsText">DealsGram is Telegram with the AutoDeals tools in your channels. Here is where to find them.</string>
+    <string name="DealsGram_FirstStepsTry">Things to try</string>
+    <string name="DealsGram_FirstStepsPasteTitle">Paste a link in your channel</string>
+    <string name="DealsGram_FirstStepsPasteText">Send an Amazon or AliExpress link: AutoDeals prepares the post and you choose the channels.</string>
+    <string name="DealsGram_FirstStepsMenuTitle">Channel menu ⋮</string>
+    <string name="DealsGram_FirstStepsMenuText">Publish deal, Multi-deal post and Upcoming posts, with the deal search.</string>
+    <string name="DealsGram_FirstStepsHoldTitle">Hold a post</string>
+    <string name="DealsGram_FirstStepsHoldText">Republish a deal from another channel on yours, with your format and affiliate tag.</string>
+    <string name="DealsGram_FirstStepsSettingsTitle">Settings</string>
+    <string name="DealsGram_FirstStepsSettingsText">AutoDeals subscription and DealsGram settings. This page is in DealsGram settings too.</string>
+    <string name="DealsGram_FirstStepsDone">Got it</string>
+    <string name="DealsGram_FirstStepsQueueText">Your channel\'s queue and scheduled posts: move, edit or remove them from the chat.</string>
+    <string name="DealsGram_FirstStepsSearchText">Search AutoDeals deals with filters and price history, then publish or queue them.</string>
+    <string name="DealsGram_FirstStepsMultiText">Pick several deals from the search or paste their links: one post with all of them.</string>
+    <string name="DealsGram_FirstStepsExpireText">Mark a deal as ended: AutoDeals updates the post in the channel by itself.</string>
+    <string name="DealsGram_FollowTitle">Stay up to date</string>
+    <string name="DealsGram_FollowNewsText">News, guides and updates on AutoDeals and DealsGram.</string>
+    <string name="DealsGram_FollowBotText">The bot to link your channels and manage everything.</string>
+    <string name="DealsGram_FollowJoin">Join</string>
+    <string name="DealsGram_FollowJoined">Joined</string>
+    <string name="DealsGram_FollowStart">Start</string>
+    <string name="DealsGram_FollowStarted">Started</string>
     <!-- DealsGram: end -->
 </resources>

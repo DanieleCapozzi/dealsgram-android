@@ -189,11 +189,18 @@ public class AutoDealsLinkModeSheet extends BottomSheet {
         }
     }
 
-    /** A muted MP4 from the app's assets, played in a loop while it is on screen. */
-    private static class LoopingVideo extends TextureView implements TextureView.SurfaceTextureListener {
+    /**
+     * A muted MP4 played in a loop while it is on screen: from the app's assets, or streamed from an https URL
+     * (the feature videos of dealsgram.app in "Primi passi"). Also used by AutoDealsPlanSheet.
+     */
+    static class LoopingVideo extends TextureView implements TextureView.SurfaceTextureListener {
         private final String asset;
         private MediaPlayer player;
         private Surface surface;
+        private boolean active = true;
+        private boolean prepared;
+        private boolean loadAllowed = true;
+        private SurfaceTexture pendingTexture;
 
         LoopingVideo(Context context, String asset) {
             super(context);
@@ -201,17 +208,58 @@ public class AutoDealsLinkModeSheet extends BottomSheet {
             setSurfaceTextureListener(this);
         }
 
+        /** A carousel downloads only the card in view and its neighbours; the others wait here. */
+        void setLoadAllowed(boolean value) {
+            loadAllowed = value;
+            if (value && player == null && pendingTexture != null) {
+                open(pendingTexture);
+            }
+        }
+
+        /** Plays only while active: a carousel keeps one video running and pauses the others. */
+        void setActive(boolean value) {
+            active = value;
+            if (player != null && prepared) {
+                if (value && !player.isPlaying()) {
+                    player.start();
+                } else if (!value && player.isPlaying()) {
+                    player.pause();
+                }
+            }
+        }
+
         @Override
         public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) {
+            pendingTexture = texture;
+            if (loadAllowed) {
+                open(texture);
+            }
+        }
+
+        private void open(SurfaceTexture texture) {
             release();
-            try (AssetFileDescriptor file = getContext().getAssets().openFd(asset)) {
+            try {
                 surface = new Surface(texture);
                 player = new MediaPlayer();
-                player.setDataSource(file.getFileDescriptor(), file.getStartOffset(), file.getLength());
+                if (asset.startsWith("https://")) {
+                    player.setDataSource(asset);
+                } else {
+                    try (AssetFileDescriptor file = getContext().getAssets().openFd(asset)) {
+                        player.setDataSource(file.getFileDescriptor(), file.getStartOffset(), file.getLength());
+                    }
+                }
                 player.setSurface(surface);
                 player.setLooping(true);
                 player.setVolume(0f, 0f);
-                player.setOnPreparedListener(MediaPlayer::start);
+                player.setOnPreparedListener(mp -> {
+                    prepared = true;
+                    if (active) {
+                        mp.start();
+                    } else {
+                        // Paused cards of a carousel: draw the first frame instead of an empty box.
+                        mp.seekTo(1);
+                    }
+                });
                 player.prepareAsync();
             } catch (Exception e) {
                 FileLog.e(e);
@@ -221,6 +269,7 @@ public class AutoDealsLinkModeSheet extends BottomSheet {
 
         @Override
         public boolean onSurfaceTextureDestroyed(SurfaceTexture texture) {
+            pendingTexture = null;
             release();
             return true;
         }
@@ -234,6 +283,7 @@ public class AutoDealsLinkModeSheet extends BottomSheet {
         }
 
         void release() {
+            prepared = false;
             if (player != null) {
                 player.release();
                 player = null;

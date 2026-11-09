@@ -161,9 +161,9 @@
     <string name="DealsGram_DiscoverSubscription">Abo entdecken</string>
     <string name="DealsGram_ConnectTitle">Verbinde den Kanal mit AutoDeals</string>
     <string name="DealsGram_ConnectText">Mit dem Free-Tarif veröffentlichst du 4 Angebote pro Tag mit deinem Affiliate-Tag. Mit einem Abo ohne Limit.</string>
-    <string name="DealsGram_ConnectStep1">Füge **%1$s** als Admin des Kanals hinzu.</string>
-    <string name="DealsGram_ConnectStep2">Schreibe eine Nachricht in den Kanal und leite sie an den Bot weiter.</string>
-    <string name="DealsGram_ConnectStep3">Komm hierher zurück: Die AutoDeals-Funktionen schalten sich von selbst ein.</string>
+    <string name="DealsGram_ConnectStep1">Öffne **%1$s** und tippe auf **Kanal hinzufügen**.</string>
+    <string name="DealsGram_ConnectStep2">Wähle deinen Kanal und bestätige die Berechtigungen, die Telegram anfragt.</string>
+    <string name="DealsGram_ConnectStep3">Komm hierher zurück: Der Kanal wird von selbst verbunden, ohne Nachricht weiterzuleiten.</string>
     <string name="DealsGram_OpenBot">%1$s öffnen</string>
     <string name="DealsGram_FreeCard_one">Free-Tarif: heute noch **%1$d** Veröffentlichung von %2$d.</string>
     <string name="DealsGram_FreeCard_other">Free-Tarif: heute noch **%1$d** Veröffentlichungen von %2$d.</string>
@@ -345,5 +345,28 @@
     <string name="DealsGram_Queued">Angebot eingereiht: Autoposting V2 veröffentlicht es zur nächsten Uhrzeit.</string>
     <string name="DealsGram_QueuedPosition">Angebot eingereiht: Autoposting V2 veröffentlicht es zur nächsten Uhrzeit (Position %1$d in der Warteschlange).</string>
     <string name="DealsGram_QueuedChannels">Angebot in %1$d Kanälen eingereiht: Autoposting V2 veröffentlicht es zur nächsten Uhrzeit.</string>
+    <string name="DealsGram_FirstStepsTitle">Erste Schritte</string>
+    <string name="DealsGram_FirstStepsText">DealsGram ist Telegram mit den AutoDeals-Werkzeugen in deinen Kanälen. Hier findest du sie.</string>
+    <string name="DealsGram_FirstStepsTry">Zum Ausprobieren</string>
+    <string name="DealsGram_FirstStepsPasteTitle">Link im Kanal einfügen</string>
+    <string name="DealsGram_FirstStepsPasteText">Sende einen Amazon- oder AliExpress-Link: AutoDeals bereitet den Beitrag vor und du wählst die Kanäle.</string>
+    <string name="DealsGram_FirstStepsMenuTitle">Kanalmenü ⋮</string>
+    <string name="DealsGram_FirstStepsMenuText">Angebot veröffentlichen, Sammelbeitrag und Nächste Beiträge, mit der Angebotssuche.</string>
+    <string name="DealsGram_FirstStepsHoldTitle">Beitrag gedrückt halten</string>
+    <string name="DealsGram_FirstStepsHoldText">Veröffentliche ein Angebot aus einem anderen Kanal in deinen, mit deinem Format und Partner-Tag.</string>
+    <string name="DealsGram_FirstStepsSettingsTitle">Einstellungen</string>
+    <string name="DealsGram_FirstStepsSettingsText">AutoDeals-Abo und DealsGram-Einstellungen. Diese Seite findest du auch dort.</string>
+    <string name="DealsGram_FirstStepsDone">Verstanden</string>
+    <string name="DealsGram_FirstStepsQueueText">Warteschlange und geplante Beiträge des Kanals: verschiebe, bearbeite oder entferne sie im Chat.</string>
+    <string name="DealsGram_FirstStepsSearchText">Suche AutoDeals-Angebote mit Filtern und Preisverlauf, dann veröffentliche oder reihe sie ein.</string>
+    <string name="DealsGram_FirstStepsMultiText">Wähle mehrere Angebote aus der Suche oder füge ihre Links ein: ein Beitrag mit allen.</string>
+    <string name="DealsGram_FirstStepsExpireText">Markiere ein Angebot als beendet: AutoDeals aktualisiert den Beitrag im Kanal von selbst.</string>
+    <string name="DealsGram_FollowTitle">Bleib auf dem Laufenden</string>
+    <string name="DealsGram_FollowNewsText">Neuigkeiten, Anleitungen und Updates zu AutoDeals und DealsGram.</string>
+    <string name="DealsGram_FollowBotText">Der Bot, um Kanäle zu verbinden und alles zu verwalten.</string>
+    <string name="DealsGram_FollowJoin">Beitreten</string>
+    <string name="DealsGram_FollowJoined">Beigetreten</string>
+    <string name="DealsGram_FollowStart">Starten</string>
+    <string name="DealsGram_FollowStarted">Gestartet</string>
     <!-- DealsGram: end -->
 </resources>

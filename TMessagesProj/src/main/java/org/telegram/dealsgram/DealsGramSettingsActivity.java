@@ -23,6 +23,7 @@ import java.util.ArrayList;
 public class DealsGramSettingsActivity extends BaseFragment {
 
     private static final int LINK_MODE = 1;
+    private static final int FIRST_STEPS = 2;
 
     private UniversalRecyclerView listView;
 
@@ -54,11 +55,15 @@ public class DealsGramSettingsActivity extends BaseFragment {
         items.add(UItem.asButton(LINK_MODE, R.drawable.msg_link, DealsGramText.get("LinkModeTitle"),
             DealsGramText.get(AutoDealsDraft.fieldMode() ? "LinkModeFieldShort" : "LinkModeSheetShort")));
         items.add(UItem.asShadow(DealsGramText.get("LinkModeFooter")));
+        items.add(UItem.asButton(FIRST_STEPS, R.drawable.msg_info, DealsGramText.get("FirstStepsTitle")));
+        items.add(UItem.asShadow(null));
     }
 
     private void onItemClick(UItem item, View view, int position, float x, float y) {
         if (item.id == LINK_MODE) {
             AutoDealsLinkModeSheet.show(getContext(), getResourceProvider(), () -> listView.adapter.update(true));
+        } else if (item.id == FIRST_STEPS) {
+            AutoDealsPlanSheet.showFirstSteps(getContext(), getResourceProvider());
         }
     }
 }

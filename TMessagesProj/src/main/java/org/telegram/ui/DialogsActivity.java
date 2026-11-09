@@ -6944,6 +6944,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     @Override
     public void onResume() {
         super.onResume();
+        if (folderId == 0 && !onlySelect && initialDialogsType == DIALOGS_TYPE_DEFAULT) {
+            // DealsGram: "Primi passi" once per account, after login (AutoDealsPlanSheet.showFirstStepsIfDue).
+            org.telegram.dealsgram.AutoDealsPlanSheet.showFirstStepsIfDue(this);
+        }
         if (dialogStoriesCell != null) {
             dialogStoriesCell.onResume();
         }

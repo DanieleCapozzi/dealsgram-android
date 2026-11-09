@@ -43,7 +43,9 @@ import java.util.Locale;
  * <li>{@link #showPlans}: the AutoDeals page of Settings, with the user's channels and their plan;</li>
  * <li>{@link #showFeature}: a feature the channel's plan does not include (the "locks");</li>
  * <li>{@link #showLimit}: the Free plan's posts of the day are over;</li>
- * <li>{@link #showConnect}: the channel is not linked to AutoDeals yet.</li>
+ * <li>{@link #showConnect}: the channel is not linked to AutoDeals yet;</li>
+ * <li>{@link #showFirstSteps}: "Primi passi", once after the first login (and from Impostazioni DealsGram): the linked
+ * channels, or how to link one, and the three things to try.</li>
  * </ul>
  * "Scopri i piani" opens the dashboard's plans panel on the channel ({@link #openCheckout}).
  */
@@ -63,7 +65,45 @@ public class AutoDealsPlanSheet extends BottomSheet {
     private static final int MODE_FEATURE = 1;
     private static final int MODE_LIMIT = 2;
     private static final int MODE_CONNECT = 3;
+    private static final int MODE_FIRST_STEPS = 4;
+
+    /** "Primi passi" already shown on this account (DealsGram prefs). */
+    private static final String FIRST_STEPS_SHOWN = "first_steps_shown_";
+    /**
+     * Debug builds only, for testing with an account that already has linked channels:
+     * adb shell run-as app.dealsgram ... first_steps_test_empty=true shows the "no channel linked" version.
+     */
+    private static final String FIRST_STEPS_TEST_EMPTY = "first_steps_test_empty";
     private static final int NAVY = 0xff1d2133;
+
+    /** "Primi passi" from Impostazioni DealsGram, any time. */
+    public static void showFirstSteps(Context context, Theme.ResourcesProvider resourcesProvider) {
+        new AutoDealsPlanSheet(context, resourcesProvider, MODE_FIRST_STEPS, null, null, 0).show();
+    }
+
+    /**
+     * "Primi passi" once per account, from the chat list after login. Debug builds show it again after
+     * clearing first_steps_shown_<account> in shared_prefs/dealsgram.xml (no reinstall, no new number).
+     */
+    public static void showFirstStepsIfDue(org.telegram.ui.ActionBar.BaseFragment fragment) {
+        int account = UserConfig.selectedAccount;
+        if (!UserConfig.getInstance(account).isClientActivated()
+                || AutoDealsPublisher.prefs().getBoolean(FIRST_STEPS_SHOWN + account, false)) {
+            return;
+        }
+        AndroidUtilities.runOnUIThread(() -> {
+            if (fragment.getParentActivity() == null || fragment.isFinished
+                    || AutoDealsPublisher.prefs().getBoolean(FIRST_STEPS_SHOWN + account, false)) {
+                return;
+            }
+            AutoDealsPublisher.prefs().edit().putBoolean(FIRST_STEPS_SHOWN + account, true).apply();
+            showFirstSteps(fragment.getParentActivity(), fragment.getResourceProvider());
+        }, 1200);
+    }
+
+    private static boolean testEmptyChannels() {
+        return org.telegram.messenger.BuildVars.DEBUG_VERSION && AutoDealsPublisher.prefs().getBoolean(FIRST_STEPS_TEST_EMPTY, false);
+    }
 
     public static void showPlans(Context context, Theme.ResourcesProvider resourcesProvider) {
         new AutoDealsPlanSheet(context, resourcesProvider, MODE_PLANS, null, null, 0).show();
@@ -98,6 +138,7 @@ public class AutoDealsPlanSheet extends BottomSheet {
         super(context, true, resourcesProvider);
         this.account = UserConfig.selectedAccount;
         this.channelId = channelId;
+        this.isFirstSteps = mode == MODE_FIRST_STEPS;
         int gray = getThemedColor(Theme.key_windowBackgroundGray);
         setBackgroundColor(gray);
         fixNavigationBar(gray);
@@ -139,6 +180,10 @@ public class AutoDealsPlanSheet extends BottomSheet {
             title = DealsGramText.get(featureKey(feature) + "Title");
             text = DealsGramText.get(featureKey(feature) + "Text");
             column.addView(badge(context, featureIcon(feature), null, Theme.multAlpha(getThemedColor(Theme.key_featuredStickers_addButton), .12f)));
+        } else if (mode == MODE_FIRST_STEPS) {
+            title = DealsGramText.get("FirstStepsTitle");
+            text = DealsGramText.get("FirstStepsText");
+            column.addView(appIcon(context));
         } else if (mode == MODE_CONNECT) {
             title = DealsGramText.get("ConnectTitle");
             text = DealsGramText.get("ConnectText");
@@ -151,7 +196,16 @@ public class AutoDealsPlanSheet extends BottomSheet {
         column.addView(heroText(context, title, 20, true, Theme.key_windowBackgroundWhiteBlackText), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 24, 14, 24, 0));
         column.addView(heroText(context, text, 14, false, Theme.key_windowBackgroundWhiteGrayText), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 24, 8, 24, 16));
 
-        if (mode == MODE_CONNECT) {
+        if (mode == MODE_FIRST_STEPS) {
+            column.addView(label(context, DealsGramText.get("YourChannels")));
+            loadChannels(card(context));
+            column.addView(label(context, DealsGramText.get("FirstStepsTry")));
+            column.addView(featureCarousel(context), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 12));
+            column.addView(label(context, DealsGramText.get("FollowTitle")));
+            LinearLayout follow = card(context);
+            follow.addView(followRow(context, "📢", "AutoDeals News", DealsGramText.get("FollowNewsText"), NEWS_USERNAME, true));
+            follow.addView(followRow(context, "🤖", "@" + AutoDealsApi.BOT_USERNAME, DealsGramText.get("FollowBotText"), AutoDealsApi.BOT_USERNAME, false));
+        } else if (mode == MODE_CONNECT) {
             LinearLayout steps = card(context);
             steps.addView(step(context, 1, DealsGramText.format("ConnectStep1", "@" + AutoDealsApi.BOT_USERNAME)));
             steps.addView(step(context, 2, DealsGramText.get("ConnectStep2")));
@@ -178,8 +232,12 @@ public class AutoDealsPlanSheet extends BottomSheet {
         buttons.setOrientation(LinearLayout.VERTICAL);
         buttons.setPadding(dp(12), dp(6), dp(12), dp(12));
         buttons.setBackgroundColor(gray);
-        ButtonWithCounterView main = new ButtonWithCounterView(context, resourcesProvider).setRound();
-        if (mode == MODE_CONNECT) {
+        main = new ButtonWithCounterView(context, resourcesProvider).setRound();
+        if (mode == MODE_FIRST_STEPS) {
+            // Until the channels are loaded; with none linked loadChannels() turns it into "Apri @AutoDealsProBot".
+            main.setText(DealsGramText.get("FirstStepsDone"), false);
+            main.setOnClickListener(v -> dismiss());
+        } else if (mode == MODE_CONNECT) {
             main.setText(DealsGramText.format("OpenBot", "@" + AutoDealsApi.BOT_USERNAME), false);
             main.setOnClickListener(v -> {
                 dismiss();
@@ -251,6 +309,9 @@ public class AutoDealsPlanSheet extends BottomSheet {
 
     // --- Channels --------------------------------------------------------------------
 
+    private ButtonWithCounterView main;
+    private final boolean isFirstSteps;
+
     private void loadChannels(LinearLayout card) {
         RadialProgressView progress = new RadialProgressView(getContext(), resourcesProvider);
         progress.setSize(dp(26));
@@ -259,7 +320,7 @@ public class AutoDealsPlanSheet extends BottomSheet {
             List<JSONObject> list = null;
             String error = null;
             try {
-                list = AutoDealsPublisher.loadChannels(account);
+                list = testEmptyChannels() ? new java.util.ArrayList<>() : AutoDealsPublisher.loadChannels(account);
             } catch (AutoDealsApi.AutoDealsException e) {
                 error = e.text;
             }
@@ -271,6 +332,20 @@ public class AutoDealsPlanSheet extends BottomSheet {
                     TextView none = text(getContext(), errorText != null ? errorText : DealsGramText.get("NoLinkedChannels"), 14, Theme.key_windowBackgroundWhiteGrayText);
                     none.setPadding(dp(16), dp(14), dp(16), dp(14));
                     card.addView(none);
+                    if (errorText == null && main != null && card.getParent() != null && isFirstSteps) {
+                        // No channel yet: how to link one, and the main button opens the bot.
+                        card.addView(step(getContext(), 1, DealsGramText.format("ConnectStep1", "@" + AutoDealsApi.BOT_USERNAME)));
+                        card.addView(step(getContext(), 2, DealsGramText.get("ConnectStep2")));
+                        card.addView(step(getContext(), 3, DealsGramText.get("ConnectStep3")));
+                        // The same steps, recorded in the bot (the other channels are blurred).
+                        card.addView(videoBox(new AutoDealsLinkModeSheet.LoopingVideo(getContext(), "dealsgram/aggiungi_canale.mp4")),
+                            LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 16, 4, 16, 14));
+                        main.setText(DealsGramText.format("OpenBot", "@" + AutoDealsApi.BOT_USERNAME), false);
+                        main.setOnClickListener(v -> {
+                            dismiss();
+                            Browser.openUrl(getContext(), BOT_URL);
+                        });
+                    }
                     return;
                 }
                 for (JSONObject channel : result) {
@@ -364,6 +439,188 @@ public class AutoDealsPlanSheet extends BottomSheet {
     }
 
     // --- Pieces ----------------------------------------------------------------------
+
+    // --- "Da provare": the feature videos of dealsgram.app, side by side ---------------------------------------
+
+    /**
+     * Scenes of the square feature videos, in this order, with their texts. The app streams the light copies of
+     * dealsgram-website/public/video/app/ (720 px, 30 fps, about 1 MB), not the 1080 px ones of the site.
+     */
+    private static final String[] CAROUSEL_SCENES = {"incolla-e-invia", "pubblica-da-un-messaggio", "prossimi-post", "cerca-offerte", "post-multiplo", "offerta-terminata"};
+    private static final String[] CAROUSEL_NAMES = {"FirstStepsPasteTitle", "PublishOnMyChannels", "UpcomingPosts", "TabSearch", "MultiPost", "DealExpired"};
+    private static final String[] CAROUSEL_TEXTS = {"FirstStepsPasteText", "FirstStepsHoldText", "FirstStepsQueueText", "FirstStepsSearchText", "FirstStepsMultiText", "FirstStepsExpireText"};
+
+    private final java.util.ArrayList<AutoDealsLinkModeSheet.LoopingVideo> carouselVideos = new java.util.ArrayList<>();
+
+    /** Recorded in Italian, English, German and Spanish; the other languages show the English ones, as the site does. */
+    private static String videoLanguageSuffix() {
+        org.telegram.messenger.LocaleController.LocaleInfo info = org.telegram.messenger.LocaleController.getInstance().getCurrentLocaleInfo();
+        String code = info != null && info.shortName != null ? info.shortName.toLowerCase(Locale.ROOT) : "en";
+        if (code.startsWith("it")) return "";
+        if (code.startsWith("de")) return "-de";
+        if (code.startsWith("es")) return "-es";
+        return "-en";
+    }
+
+    /** Swipe between the features; only the card in view plays, streamed from dealsgram.app. */
+    private View featureCarousel(Context context) {
+        android.widget.HorizontalScrollView scroller = new android.widget.HorizontalScrollView(context);
+        scroller.setHorizontalScrollBarEnabled(false);
+        scroller.setClipToPadding(false);
+        scroller.setPadding(dp(12), 0, dp(12), 0);
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        String suffix = videoLanguageSuffix();
+        int cardWidth = Math.min(dp(280), (int) (AndroidUtilities.displaySize.x * 0.78f));
+        for (int i = 0; i < CAROUSEL_SCENES.length; i++) {
+            LinearLayout cardView = new LinearLayout(context);
+            cardView.setOrientation(LinearLayout.VERTICAL);
+            cardView.setPadding(dp(10), dp(10), dp(10), dp(12));
+            cardView.setBackground(Theme.createRoundRectDrawable(dp(20), getThemedColor(Theme.key_windowBackgroundWhite)));
+            AutoDealsLinkModeSheet.LoopingVideo video = new AutoDealsLinkModeSheet.LoopingVideo(context,
+                "https://dealsgram.app/video/app/" + CAROUSEL_SCENES[i] + suffix + ".mp4");
+            video.setActive(i == 0);
+            video.setLoadAllowed(i <= 1);
+            carouselVideos.add(video);
+            cardView.addView(videoBox(video), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+            TextView name = text(context, DealsGramText.get(CAROUSEL_NAMES[i]), 15, Theme.key_windowBackgroundWhiteBlackText);
+            name.setTypeface(AndroidUtilities.bold());
+            cardView.addView(name, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 4, 10, 4, 0));
+            // Three lines for every card, so they all have the same height.
+            TextView description = text(context, DealsGramText.get(CAROUSEL_TEXTS[i]), 13, Theme.key_windowBackgroundWhiteGrayText);
+            description.setLines(3);
+            description.setEllipsize(TextUtils.TruncateAt.END);
+            cardView.addView(description, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 4, 2, 4, 0));
+            row.addView(cardView, new LinearLayout.LayoutParams(cardWidth, LinearLayout.LayoutParams.WRAP_CONTENT));
+            if (i < CAROUSEL_SCENES.length - 1) {
+                row.addView(new View(context), new LinearLayout.LayoutParams(dp(10), 1));
+            }
+        }
+        scroller.addView(row, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT));
+        int step = cardWidth + dp(10);
+        scroller.setOnScrollChangeListener((v, x, y, oldX, oldY) -> {
+            int current = Math.round(x / (float) step);
+            for (int i = 0; i < carouselVideos.size(); i++) {
+                if (Math.abs(i - current) <= 1) {
+                    carouselVideos.get(i).setLoadAllowed(true);
+                }
+                carouselVideos.get(i).setActive(i == current);
+            }
+        });
+        // Snap to the nearest card when the finger lifts.
+        scroller.setOnTouchListener((v, event) -> {
+            int action = event.getAction();
+            if (action == android.view.MotionEvent.ACTION_UP || action == android.view.MotionEvent.ACTION_CANCEL) {
+                v.postDelayed(() -> scroller.smoothScrollTo(Math.round(scroller.getScrollX() / (float) step) * step, 0), 80);
+            }
+            return false;
+        });
+        return scroller;
+    }
+
+    /** A square video with rounded corners, on the grey of the sheet until its first frame. */
+    private View videoBox(AutoDealsLinkModeSheet.LoopingVideo video) {
+        FrameLayout box = new FrameLayout(getContext()) {
+            @Override
+            protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                int width = MeasureSpec.getSize(widthMeasureSpec);
+                super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY));
+            }
+        };
+        box.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
+        box.setOutlineProvider(new android.view.ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, android.graphics.Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp(14));
+            }
+        });
+        box.setClipToOutline(true);
+        box.addView(video, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        return box;
+    }
+
+    @Override
+    public void dismissInternal() {
+        for (AutoDealsLinkModeSheet.LoopingVideo video : carouselVideos) {
+            video.release();
+        }
+        super.dismissInternal();
+    }
+
+    // --- "Resta aggiornato": the news channel and the bot, joined only when the user taps -----------------
+
+    /** The AutoDeals news channel (t.me/AutoDealsNews). Telegram clients must not join channels on their own. */
+    private static final String NEWS_USERNAME = "AutoDealsNews";
+
+    /**
+     * A row with a Join / Start button. The channel is joined in place (MessagesController.addUserToChat, as the
+     * channel's own Join button); the bot opens in its chat, where Telegram asks to start it. Rows already done
+     * (member of the channel, a chat with the bot) show their check mark.
+     */
+    private View followRow(Context context, String emoji, String title, String description, String username, boolean channel) {
+        LinearLayout row = new LinearLayout(context);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(16), dp(10), dp(14), dp(10));
+        TextView glyph = new TextView(context);
+        glyph.setText(emoji);
+        glyph.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22);
+        glyph.setGravity(Gravity.CENTER);
+        row.addView(glyph, LayoutHelper.createLinear(32, 32, Gravity.CENTER_VERTICAL, 0, 0, 12, 0));
+        LinearLayout texts = new LinearLayout(context);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        TextView name = text(context, title, 15, Theme.key_windowBackgroundWhiteBlackText);
+        name.setTypeface(AndroidUtilities.bold());
+        texts.addView(name);
+        texts.addView(text(context, description, 13, Theme.key_windowBackgroundWhiteGrayText), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0));
+        row.addView(texts, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f));
+
+        TextView button = text(context, DealsGramText.get(channel ? "FollowJoin" : "FollowStart"), 14, Theme.key_featuredStickers_buttonText);
+        button.setTypeface(AndroidUtilities.bold());
+        button.setGravity(Gravity.CENTER);
+        button.setPadding(dp(14), 0, dp(14), 0);
+        button.setBackground(Theme.createRoundRectDrawable(dp(16), getThemedColor(Theme.key_featuredStickers_addButton)));
+        ScaleStateListAnimator.apply(button, .06f, 1.2f);
+        row.addView(button, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, 32, Gravity.CENTER_VERTICAL, 10, 0, 0, 0));
+
+        MessagesController messages = MessagesController.getInstance(account);
+        Runnable markDone = () -> {
+            button.setText("✅ " + DealsGramText.get(channel ? "FollowJoined" : "FollowStarted"));
+            button.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+            button.setBackground(Theme.createRoundRectDrawable(dp(16), getThemedColor(Theme.key_windowBackgroundGray)));
+            button.setOnClickListener(null);
+            button.setClickable(false);
+        };
+        long[] peer = {0};
+        messages.getUserNameResolver().resolve(username, peerId -> {
+            if (peerId == null || peerId == 0) {
+                return;
+            }
+            peer[0] = peerId;
+            if (channel) {
+                TLRPC.Chat chat = messages.getChat(-peerId);
+                if (chat != null && !chat.left && !chat.kicked) {
+                    markDone.run();
+                }
+            } else if (messages.dialogs_dict.get(peerId) != null) {
+                markDone.run();
+            }
+        });
+        button.setOnClickListener(v -> {
+            if (channel) {
+                TLRPC.Chat chat = peer[0] != 0 ? messages.getChat(-peer[0]) : null;
+                if (chat == null) {
+                    Browser.openUrl(getContext(), "https://t.me/" + username);
+                    return;
+                }
+                markDone.run();
+                messages.addUserToChat(chat.id, UserConfig.getInstance(account).getCurrentUser(), 0, null, null, null);
+            } else {
+                dismiss();
+                Browser.openUrl(getContext(), "https://t.me/" + username);
+            }
+        });
+        return row;
+    }
 
     private View appIcon(Context context) {
         ImageView icon = new ImageView(context);
