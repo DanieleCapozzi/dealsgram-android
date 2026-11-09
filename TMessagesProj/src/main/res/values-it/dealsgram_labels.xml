@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DealsGram: label of "share to" in Android's share sheet, in the system language.
+     Kept out of strings.xml, whose strings Telegram's build moves to its own localization files. -->
+<resources>
+    <string name="dealsgram_share_label">Pubblica offerta</string>
+</resources>

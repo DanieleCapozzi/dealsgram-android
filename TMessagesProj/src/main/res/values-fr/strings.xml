@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DealsGram: empty on purpose. Its presence adds "fr" to the generated LocalizationUtils, so French picks
+     localization_fr.bin with the DealsGram texts of TMessagesProj_AppStandalone/src/main/res/values-fr/strings.xml.
+     Telegram's own French texts still come from the server language pack. -->
+<resources />

@@ -5180,6 +5180,17 @@ public class ChatActivityEnterView extends FrameLayout implements
             ;*/
         }
 
+        // DealsGram: the AutoDeals post in the field can also go to the Autoposting V2 curated queue.
+        if (parentFragment != null && parentFragment.autoDealsDraft != null && parentFragment.autoDealsDraft.canQueue()) {
+            options.add(R.drawable.msg_list, org.telegram.dealsgram.DealsGramText.get("AddToQueue"), () -> {
+                parentFragment.autoDealsDraft.send(0, true);
+                if (messageSendPreview != null) {
+                    messageSendPreview.dismiss(false);
+                    messageSendPreview = null;
+                }
+            });
+        }
+
         if (sendWithoutSoundButtonValue) {
             options.add(R.drawable.input_notify_off, getString(R.string.SendWithoutSound), () -> {
                 sentFromPreview = System.currentTimeMillis();
@@ -6043,6 +6054,10 @@ public class ChatActivityEnterView extends FrameLayout implements
                     ignorePrevTextChange = false;
                     return;
                 }
+                // DealsGram: a link in a channel linked to AutoDeals starts preparing its post before Send.
+                if (parentFragment != null && editingMessageObject == null && !isInScheduleMode()) {
+                    org.telegram.dealsgram.AutoDealsPublisher.onFieldTextChanged(dialog_id, editable);
+                }
                 if (innerTextChange == 0) {
                     if (nextChangeIsSend) {
                         sendMessage();
@@ -6187,7 +6202,8 @@ public class ChatActivityEnterView extends FrameLayout implements
 
     private boolean shownRichButton;
     private void showRichButton(boolean show_) {
-        final boolean show = (richDraftActive || show_) && parentFragment != null && !parentFragment.isSecretChat() && editingMessageObject == null && MessagesController.getInstance(currentAccount).richEditorAvailable();
+        // DealsGram: not for the AutoDeals post in the field, which the rich editor would send from the user's account.
+        final boolean show = (richDraftActive || show_) && parentFragment != null && !parentFragment.isSecretChat() && editingMessageObject == null && parentFragment.autoDealsDraft == null && MessagesController.getInstance(currentAccount).richEditorAvailable();
 
         if (shownRichButton == show) return;
         shownRichButton = show;
@@ -7495,6 +7511,20 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
             }
             if (checkPremiumAnimatedEmoji(currentAccount, dialog_id, parentFragment, null, message)) {
+                return;
+            }
+            // DealsGram: the AutoDeals post edited in the field is published by AutoDeals (now or at the chosen date),
+            // never sent from the user's account.
+            if (parentFragment != null && parentFragment.autoDealsDraft != null && !isInScheduleMode()) {
+                parentFragment.autoDealsDraft.send(scheduleDate, false);
+                return;
+            }
+            // DealsGram: a bare link in a channel linked to AutoDeals opens the AutoDeals preview.
+            if (scheduleDate == 0 && !isInScheduleMode() && org.telegram.dealsgram.AutoDealsPublisher.interceptSend(parentFragment, dialog_id, message, () -> {
+                if (messageEditText != null) {
+                    messageEditText.setText("");
+                }
+            })) {
                 return;
             }
             if (processSendingText(message, notify, scheduleDate, scheduleRepeatPeriod, payStars)) {
@@ -10796,6 +10826,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
     public void openRichEditor() {
         if (messageEditText == null || parentFragment == null) return;
+        if (parentFragment.autoDealsDraft != null) return; // DealsGram: see showRichButton()
         if (!MessagesController.getInstance(currentAccount).richEditorAvailable()) return;
         final RichEditor editor;
         if (richDraftMessage != null) {

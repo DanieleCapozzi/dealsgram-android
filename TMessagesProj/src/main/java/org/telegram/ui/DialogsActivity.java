@@ -3360,6 +3360,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         fragmentSearchFieldWatcher.setDoNotCloseAfterFieldEmpty();
 
         if (initialDialogsType == DIALOGS_TYPE_DEFAULT) {
+            // DealsGram: the AutoDeals mini-app (channels, posts, settings) from the chat list.
+            ActionBarMenuItem dealsgramItem = menu.addItem(990, R.drawable.dealsgram_header_icon);
+            dealsgramItem.setContentDescription("AutoDeals");
+            dealsgramItem.setOnClickListener(v -> org.telegram.dealsgram.AutoDealsPublisher.openMiniApp(this, "/"));
             optionsItem = menu.addItem(4, R.drawable.ic_ab_other);
             optionsItem.setContentDescription(LocaleController.getString(R.string.AccDescrMoreOptions));
             optionsItem.setOnClickListener(v -> {
@@ -3434,11 +3438,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             } else {
                 statusDrawable = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(null, dp(26));
                 statusDrawable.center = true;
-                logoDrawable = context.getResources().getDrawable(R.drawable.telegram_logo_2).mutate();
-                logoDrawable.setBounds(0, dp(2), logoDrawable.getIntrinsicWidth(), dp(2) + logoDrawable.getIntrinsicHeight());
-                // a new drawable (also when the view is recreated after a theme switch made elsewhere): remember its tint, the
-                // theme hook only recolors when the color differs from the last one applied
-                logoDrawable.setColorFilter(lastLogoDrawableColor = getThemedColor(Theme.key_telegram_color_dialogsLogo), PorterDuff.Mode.MULTIPLY);
+                // DealsGram: two-colour wordmark, so no theme tint; the dark variant has a white "Gram".
+                logoDrawable = context.getResources().getDrawable(Theme.isCurrentThemeDark() ? R.drawable.dealsgram_logo_dark : R.drawable.dealsgram_logo).mutate();
+                logoDrawable.setBounds(0, dp(4), logoDrawable.getIntrinsicWidth(), dp(4) + logoDrawable.getIntrinsicHeight());
                 SpannableStringBuilder ssb = new SpannableStringBuilder(getString(R.string.AppName));
                 ssb.setSpan(new ImageSpan(logoDrawable), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 actionBar.setTitle(ssb, statusDrawable);
@@ -14278,13 +14280,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     if (dialogStoriesCell != null) {
                         dialogStoriesCell.updateColors();
                     }
-                    if (logoDrawable != null) {
-                        final int logoColor = getThemedColor(Theme.key_telegram_color_dialogsLogo);
-                        if (logoColor != lastLogoDrawableColor) {
-                            lastLogoDrawableColor = logoColor;
-                            logoDrawable.setColorFilter(logoColor, PorterDuff.Mode.MULTIPLY);
-                        }
-                    }
+                    // DealsGram: the two-colour wordmark is never tinted by the theme.
                     // actionModeCloseView: colors are kept by its ThemeBind bindings
                     if (fragmentSearchField != null) {
                         fragmentSearchField.updateColors();

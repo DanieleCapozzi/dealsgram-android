@@ -1576,6 +1576,11 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 return false;
             }
         }
+        // DealsGram: a link shared to "Pubblica offerta" opens the AutoDeals sheet over the chat list.
+        if (org.telegram.dealsgram.AutoDealsPublisher.ACTION_PUBLISH.equals(action)) {
+            String sharedLink = intent.getStringExtra(org.telegram.dealsgram.AutoDealsPublisher.EXTRA_LINK);
+            AndroidUtilities.runOnUIThread(() -> org.telegram.dealsgram.AutoDealsPublisher.openShared(sharedLink, 0), 300);
+        }
         boolean pushOpened = false;
         long push_user_id = 0;
         long push_chat_id = 0;
@@ -7197,6 +7202,8 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         super.onResume();
         WidgetMedia.onAppPaused(false);
         isResumed = true;
+        // DealsGram: anonymous usage ping (installs, active installations), at most every 12 hours.
+        org.telegram.dealsgram.AutoDealsApi.pingIfDue();
         PipCoordinator.getInstance().onActivityResume(this);
         if (onResumeStaticCallback != null) {
             onResumeStaticCallback.run();

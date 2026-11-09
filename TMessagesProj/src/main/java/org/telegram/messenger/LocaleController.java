@@ -1469,10 +1469,42 @@ public class LocaleController {
         return getStringInternal(key, null, res);
     }
 
+    private static final java.util.Set<String> DEALSGRAM_APP_TEXTS = new java.util.HashSet<>(java.util.Arrays.asList(
+        "ContactsPermissionAlert", "NotificationsPermissionAlertSubtitle", "QRCodePermissionNoCameraWithHint",
+        "LowDiskSpaceMessage", "ClearingCacheDescription", "NotificationsServiceConnectionInfo", "LocalDatabaseInfo",
+        "SentCallCode", "AppUpdate"));
+
+    /**
+     * DealsGram: texts where "Telegram" means the app itself (permissions, notifications, cache, reading the
+     * login call), not the service (account, links, Passport, terms), which stay as they are.
+     */
+    private static boolean isDealsGramAppText(String key, int res) {
+        if (key == null && res != 0) {
+            try {
+                key = ApplicationLoader.applicationContext.getResources().getResourceEntryName(res);
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        if (key == null) {
+            return false;
+        }
+        return key.startsWith("Permission") || key.startsWith("VoipNeed") || key.startsWith("AllowRead")
+            || key.startsWith("AllowFill") || DEALSGRAM_APP_TEXTS.contains(key);
+    }
+
     private String getStringInternal(String key, String fallback, int res) {
+        // DealsGram: the server language packs would rename the app back to "Telegram".
+        if (res == R.string.AppName || "AppName".equals(key)) {
+            return "DealsGram";
+        }
         final String value = getStringV2(key, res, fallback);
         if (value == null) {
             return "LOC_ERR:" + key;
+        }
+        if (value.contains("Telegram") && isDealsGramAppText(key, res)) {
+            // The first "Telegram" is the app on the phone; later ones (servers, account) stay Telegram.
+            return value.replaceFirst("Telegram", "DealsGram");
         }
         return value;
     }

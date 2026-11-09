@@ -795,6 +795,12 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             items.add(UItem.asShadow(null));
         }
 
+        // DealsGram: AutoDeals channels and plans (org.telegram.dealsgram.AutoDealsPlanSheet).
+        final CharSequence[] dealsgram = org.telegram.dealsgram.AutoDealsPublisher.settingsTexts(currentAccount);
+        items.add(SettingCell.Factory.of(990, 0xFF2E3450, 0xFF1D2133, R.drawable.dealsgram_settings_icon, org.telegram.dealsgram.DealsGramText.get("SettingsTitle"), dealsgram[0], dealsgram[1]));
+        items.add(SettingCell.Factory.of(991, 0xFF2E3450, 0xFF1D2133, R.drawable.dealsgram_settings_gear, org.telegram.dealsgram.DealsGramText.get("DealsGramSettingsTitle"), org.telegram.dealsgram.DealsGramText.get("DealsGramSettingsInfo")));
+        items.add(UItem.asShadow(null));
+
         items.add(SettingCell.Factory.of(1, IconBackgroundColors.BLUE.top, IconBackgroundColors.BLUE.bottom, R.drawable.settings_account, getString(R.string.SettingsAccount), getString(R.string.SettingsAccountInfo)));
         items.add(SettingCell.Factory.of(2, IconBackgroundColors.ORANGE.top, IconBackgroundColors.ORANGE.bottom, R.drawable.settings_chat, getString(R.string.SettingsChat), getString(R.string.SettingsChatInfo)));
         items.add(SettingCell.Factory.of(3, IconBackgroundColors.GREEN.top, IconBackgroundColors.GREEN.bottom, R.drawable.settings_privacy, getString(R.string.SettingsPrivacySecurity), getString(R.string.SettingsPrivacySecurityInfo)));
@@ -917,6 +923,12 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             return;
         }
         switch (item.id) {
+            case 990: // DealsGram
+                org.telegram.dealsgram.AutoDealsPlanSheet.showPlans(getContext(), getResourceProvider());
+                break;
+            case 991: // DealsGram: the app's own settings (org.telegram.dealsgram.DealsGramSettingsActivity)
+                presentSettingFragment(new org.telegram.dealsgram.DealsGramSettingsActivity());
+                break;
             case 1:
                 presentSettingFragment(new UserInfoActivity());
                 break;

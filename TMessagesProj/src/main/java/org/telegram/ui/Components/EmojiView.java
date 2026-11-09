@@ -311,6 +311,9 @@ public class EmojiView extends FrameLayout implements
         }
     }
 
+    // DealsGram: the emoji search finds only plain emoji (for text that is sent as plain text, as the AutoDeals note).
+    public boolean plainEmojiSearch;
+
     private boolean allowEmojisForNonPremium;
     public void allowEmojisForNonPremium(boolean allow) {
         allowEmojisForNonPremium = allow;
@@ -8477,7 +8480,7 @@ public class EmojiView extends FrameLayout implements
                 searchRunnable = new SearchRunnable() {
                     @Override
                     public void loadNext() {
-                        if (isLoading()) {
+                        if (isLoading() || plainEmojiSearch) { // DealsGram: no global (custom) results
                             return;
                         }
 
@@ -8517,6 +8520,10 @@ public class EmojiView extends FrameLayout implements
                             final ArrayList<EmojiPackInfo> packsResult2 = new ArrayList<>();
                             Utilities.doCallbacks(
                                     next -> {
+                                        if (plainEmojiSearch) { // DealsGram: no custom emoji packs
+                                            next.run();
+                                            return;
+                                        }
                                         MediaDataController.getInstance(currentAccount).searchStickerSets(true, query, stickers -> {
                                             for (TLRPC.StickerSetCovered fav : stickers) {
                                                 ArrayList<TLRPC.Document> documents = null;
@@ -8546,10 +8553,10 @@ public class EmojiView extends FrameLayout implements
                                             resultPre.addAll(param);
 
                                             next.run();
-                                        }, null, SharedConfig.suggestAnimatedEmoji || UserConfig.getInstance(currentAccount).isPremium(), false, true, 25);
+                                        }, null, !plainEmojiSearch && (SharedConfig.suggestAnimatedEmoji || UserConfig.getInstance(currentAccount).isPremium()), false, true, 25); // DealsGram: plainEmojiSearch
                                 },
                                 next -> {
-                                    if (SharedConfig.suggestAnimatedEmoji || UserConfig.getInstance(currentAccount).isPremium()) {
+                                    if (!plainEmojiSearch && (SharedConfig.suggestAnimatedEmoji || UserConfig.getInstance(currentAccount).isPremium())) { // DealsGram: plainEmojiSearch
                                         final String q = translitSafe((query + "").toLowerCase());
                                         final ArrayList<TLRPC.TL_messages_stickerSet> sets = MediaDataController.getInstance(currentAccount).getStickerSets(MediaDataController.TYPE_EMOJIPACKS);
 
@@ -8597,7 +8604,7 @@ public class EmojiView extends FrameLayout implements
                                     next.run();
                                 },
                                 next -> {
-                                    if (ConnectionsManager.getInstance(currentAccount).getConnectionState() != ConnectionsManager.ConnectionStateConnected) {
+                                    if (plainEmojiSearch || ConnectionsManager.getInstance(currentAccount).getConnectionState() != ConnectionsManager.ConnectionStateConnected) { // DealsGram: plainEmojiSearch
                                         next.run();
                                         return;
                                     }

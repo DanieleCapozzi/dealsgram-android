@@ -133,32 +133,22 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
     public boolean onFragmentCreate() {
         MessagesController.getGlobalMainSettings().edit().putLong("intro_crashed_time", System.currentTimeMillis()).apply();
 
+        // DealsGram: three pages about the app instead of Telegram's six.
         titles = new CharSequence[]{
-                null,
-                LocaleController.getString(R.string.Page2Title),
-                LocaleController.getString(R.string.Page3Title),
-                LocaleController.getString(R.string.Page5Title),
-                LocaleController.getString(R.string.Page4Title),
-                LocaleController.getString(R.string.Page6Title)
+                "DealsGram",
+                org.telegram.dealsgram.DealsGramText.get("IntroTitle2"),
+                org.telegram.dealsgram.DealsGramText.get("IntroTitle3")
         };
         messages = new String[]{
-                LocaleController.getString(R.string.Page1Message),
-                LocaleController.getString(R.string.Page2Message),
-                LocaleController.getString(R.string.Page3Message),
-                LocaleController.getString(R.string.Page5Message),
-                LocaleController.getString(R.string.Page4Message),
-                LocaleController.getString(R.string.Page6Message)
+                org.telegram.dealsgram.DealsGramText.get("IntroText1"),
+                org.telegram.dealsgram.DealsGramText.get("IntroText2"),
+                org.telegram.dealsgram.DealsGramText.get("IntroText3")
         };
         return true;
     }
 
     @Override
     public View createView(Context context) {
-        logoDrawable = context.getResources().getDrawable(R.drawable.telegram_logo).mutate();
-        logoDrawable.setBounds(0, dp(8.666f), dp(115), dp(35));
-        SpannableStringBuilder ssb = new SpannableStringBuilder(LocaleController.getString(R.string.Page1Title));
-        ssb.setSpan(new ImageSpan(logoDrawable), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        titles[0] = ssb;
 
 
         actionBar.setAddToContainer(false);
@@ -248,8 +238,13 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
         frameLayout2 = new FrameLayout(context);
         frameContainerView.addView(frameLayout2, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP, 0, 78, 0, 0));
 
+        android.widget.ImageView dealsgramLogo = new android.widget.ImageView(context);
+        dealsgramLogo.setImageResource(R.mipmap.icon_foreground_sa);
+        dealsgramLogo.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+        dealsgramLogo.setBackground(Theme.createCircleDrawable(dp(132), 0xff1d2133));
+        frameLayout2.addView(dealsgramLogo, LayoutHelper.createFrame(132, 132, Gravity.CENTER));
+        // Kept but not added: without its surface the Telegram animation never starts.
         TextureView textureView = new TextureView(context);
-        frameLayout2.addView(textureView, LayoutHelper.createFrame(ICON_WIDTH_DP, ICON_HEIGHT_DP, Gravity.CENTER));
         textureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override
             public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {
@@ -308,7 +303,9 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
                     return;
                 }
                 float offset = (position * width + positionOffsetPixels - currentViewPagerPage * width) / width;
-                Intro.setScrollOffset(offset);
+                if (eglThread != null) {
+                    Intro.setScrollOffset(offset);
+                }
             }
 
             @Override
@@ -389,7 +386,7 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
             destroyed = true;
         });
 
-        bottomPages = new BottomPagesView(context, viewPager, 6);
+        bottomPages = new BottomPagesView(context, viewPager, titles.length);
         frameContainerView.addView(bottomPages, LayoutHelper.createFrame(66, 5, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, ICON_HEIGHT_DP + 200, 0, 0));
 
         switchLanguageTextView = new TextView(context);
@@ -964,7 +961,6 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
 
     private void updateColors(boolean fromTheme) {
         startMessagingButtonBackground.setColors(new int[]{getThemedColor(Theme.key_featuredStickers_addButton), getThemedColor(Theme.key_featuredStickers_addButton2)});
-        logoDrawable.setColorFilter(Theme.multAlpha(getThemedColor(Theme.key_actionBarDefaultTitle), 0.9f), PorterDuff.Mode.MULTIPLY);
         fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
         switchLanguageTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
         startMessagingButton.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
@@ -991,7 +987,9 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
                 TextView messageTextView = ch.findViewWithTag(pagerMessageTag);
                 messageTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
             }
-        } else Intro.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        } else if (eglThread != null) {
+            Intro.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        }
     }
 
     private int glTexturesColor;

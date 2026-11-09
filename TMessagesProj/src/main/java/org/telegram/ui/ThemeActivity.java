@@ -778,9 +778,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             chatListRow = rowCount++;
             chatListInfoRow = rowCount++;
 
-            appIconHeaderRow = rowCount++;
-            appIconSelectorRow = rowCount++;
-            appIconShadowRow = rowCount++;
+            // DealsGram: no app icon picker, its alternatives are Telegram's icons.
 
             swipeGestureHeaderRow = rowCount++;
             swipeGestureRow = rowCount++;

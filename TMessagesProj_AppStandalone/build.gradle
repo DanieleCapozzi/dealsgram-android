@@ -49,18 +49,34 @@ android {
     }
 
     signingConfigs {
-        debug {
-            storeFile file("../TMessagesProj/config/release.keystore")
-            storePassword RELEASE_STORE_PASSWORD
-            keyAlias RELEASE_KEY_ALIAS
-            keyPassword RELEASE_KEY_PASSWORD
-        }
+        // DealsGram: no custom debug config. Debug builds share the app.dealsgram package with the release, so they
+        // are signed with the Android SDK debug key of the machine that builds them (~/.android/debug.keystore,
+        // created by the build), not with Telegram's public release.keystore: anyone holding that public key could
+        // sign an "update" that Android would install over a debug build.
 
+        // DealsGram: the release build is signed with our own key, kept outside the repository. Path, alias and
+        // passwords are in local.properties (DEALSGRAM_KEYSTORE, DEALSGRAM_KEY_ALIAS, DEALSGRAM_STORE_PASSWORD,
+        // DEALSGRAM_KEY_PASSWORD); Telegram's release.keystore is public and never signs what we distribute.
         release {
-            storeFile file("../TMessagesProj/config/release.keystore")
-            storePassword RELEASE_STORE_PASSWORD
-            keyAlias RELEASE_KEY_ALIAS
-            keyPassword RELEASE_KEY_PASSWORD
+            def props = new Properties()
+            def local = rootProject.file('local.properties')
+            if (local.exists()) {
+                local.withInputStream { props.load(it) }
+            }
+            if (props['DEALSGRAM_KEYSTORE']) {
+                storeFile file(props['DEALSGRAM_KEYSTORE'])
+                storePassword props['DEALSGRAM_STORE_PASSWORD']
+                keyAlias props['DEALSGRAM_KEY_ALIAS']
+                keyPassword props['DEALSGRAM_KEY_PASSWORD'] ?: props['DEALSGRAM_STORE_PASSWORD']
+            }
+        }
+    }
+
+    // Without the DealsGram key the release build stops instead of producing an unsigned or wrongly signed APK.
+    gradle.taskGraph.whenReady { graph ->
+        def releaseTask = graph.allTasks.any { it.project == project && it.name.toLowerCase().contains('standalone') && it.name.startsWith('package') }
+        if (releaseTask && signingConfigs.release.storeFile == null) {
+            throw new GradleException("DealsGram: chiave di firma mancante. Aggiungi DEALSGRAM_KEYSTORE e le password in local.properties (README.md, Building).")
         }
     }
 
@@ -75,7 +91,6 @@ android {
             debuggable true
             jniDebuggable true
             signingConfig signingConfigs.debug
-            applicationIdSuffix ".web"
             minifyEnabled false
             multiDexEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../TMessagesProj/proguard-rules.pro'
@@ -86,7 +101,6 @@ android {
             debuggable false
             jniDebuggable false
             signingConfig signingConfigs.release
-            applicationIdSuffix ".web"
             minifyEnabled true
             shrinkResources true
             multiDexEnabled true
@@ -123,7 +137,8 @@ android {
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
             outputFileName = "app.apk"
-            output.versionCodeOverride = defaultConfig.versionCode * 10 + variant.productFlavors.get(0).abiVersionCode
+            // DealsGram: Telegram build * 100 + our build number (DEALSGRAM_BUILD), then the ABI digit as before.
+            output.versionCodeOverride = (defaultConfig.versionCode * 100 + Integer.parseInt(DEALSGRAM_BUILD)) * 10 + variant.productFlavors.get(0).abiVersionCode
         }
     }
 

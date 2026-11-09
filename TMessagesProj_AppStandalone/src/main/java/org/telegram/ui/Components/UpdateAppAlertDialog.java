@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.PorterDuff;
@@ -11,6 +12,7 @@ import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
+import android.util.Pair;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -22,20 +24,28 @@ import android.widget.TextView;
 import androidx.core.widget.NestedScrollView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.BetaUpdate;
 import org.telegram.messenger.DocumentObject;
+import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.ImageLocation;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SvgHelper;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Stories.recorder.ButtonWithCounterView;
 
+import java.io.File;
+
+// DealsGram: copied from TMessagesProj_AppHockeyApp (updates from dealsgram.app, see DealsGramUpdater).
 public class UpdateAppAlertDialog extends BottomSheet {
 
-    private TLRPC.TL_help_appUpdate appUpdate;
+    private BetaUpdate appUpdate;
     private int accountNum;
     private RadialProgress radialProgress;
     private FrameLayout radialProgressView;
@@ -134,7 +144,7 @@ public class UpdateAppAlertDialog extends BottomSheet {
         }
     }
 
-    public UpdateAppAlertDialog(Context context, TLRPC.TL_help_appUpdate update, int account) {
+    public UpdateAppAlertDialog(Context context, BetaUpdate update, int account) {
         super(context, false);
         appUpdate = update;
         accountNum = account;
@@ -232,19 +242,19 @@ public class UpdateAppAlertDialog extends BottomSheet {
         linearLayout.setOrientation(LinearLayout.VERTICAL);
         scrollView.addView(linearLayout, LayoutHelper.createScroll(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP));
 
-        if (appUpdate.sticker != null) {
-            BackupImageView imageView = new BackupImageView(context);
-            SvgHelper.SvgDrawable svgThumb = DocumentObject.getSvgThumb(appUpdate.sticker.thumbs, Theme.key_windowBackgroundGray, 1.0f);
-            TLRPC.PhotoSize thumb = FileLoader.getClosestPhotoSizeWithSize(appUpdate.sticker.thumbs, 90);
-            ImageLocation imageLocation = ImageLocation.getForDocument(thumb, appUpdate.sticker);
-
-            if (svgThumb != null) {
-                imageView.setImage(ImageLocation.getForDocument(appUpdate.sticker), "250_250", svgThumb, 0, "update");
-            } else {
-                imageView.setImage(ImageLocation.getForDocument(appUpdate.sticker), "250_250", imageLocation, null, 0, "update");
-            }
-            linearLayout.addView(imageView, LayoutHelper.createLinear(160, 160, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 17, 8, 17, 0));
-        }
+//        if (appUpdate.sticker != null) {
+//            BackupImageView imageView = new BackupImageView(context);
+//            SvgHelper.SvgDrawable svgThumb = DocumentObject.getSvgThumb(appUpdate.sticker.thumbs, Theme.key_windowBackgroundGray, 1.0f);
+//            TLRPC.PhotoSize thumb = FileLoader.getClosestPhotoSizeWithSize(appUpdate.sticker.thumbs, 90);
+//            ImageLocation imageLocation = ImageLocation.getForDocument(thumb, appUpdate.sticker);
+//
+//            if (svgThumb != null) {
+//                imageView.setImage(ImageLocation.getForDocument(appUpdate.sticker), "250_250", svgThumb, 0, "update");
+//            } else {
+//                imageView.setImage(ImageLocation.getForDocument(appUpdate.sticker), "250_250", imageLocation, null, 0, "update");
+//            }
+//            linearLayout.addView(imageView, LayoutHelper.createLinear(160, 160, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 17, 8, 17, 0));
+//        }
 
         TextView textView = new TextView(context);
         textView.setTypeface(AndroidUtilities.bold());
@@ -260,24 +270,21 @@ public class UpdateAppAlertDialog extends BottomSheet {
         messageTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
         messageTextView.setMovementMethod(new AndroidUtilities.LinkMovementMethodMy());
         messageTextView.setLinkTextColor(Theme.getColor(Theme.key_dialogTextLink));
-        messageTextView.setText(LocaleController.formatString("AppUpdateVersionAndSize", R.string.AppUpdateVersionAndSize, appUpdate.version, AndroidUtilities.formatFileSize(appUpdate.document.size)));
+        messageTextView.setText(LocaleController.formatString(R.string.AppBetaUpdateVersion, appUpdate.version, appUpdate.versionCode));
         messageTextView.setGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
         linearLayout.addView(messageTextView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 23, 0, 23, 5));
 
-        TextView changelogTextView = new TextView(getContext());
-        changelogTextView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
-        changelogTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-        changelogTextView.setMovementMethod(new AndroidUtilities.LinkMovementMethodMy());
-        changelogTextView.setLinkTextColor(Theme.getColor(Theme.key_dialogTextLink));
-        if (TextUtils.isEmpty(appUpdate.text)) {
-            changelogTextView.setText(AndroidUtilities.replaceTags(LocaleController.getString(R.string.AppUpdateChangelogEmpty)));
-        } else {
-            SpannableStringBuilder builder = new SpannableStringBuilder(appUpdate.text);
-            MessageObject.addEntitiesToText(builder, update.entities, false, false, false, false);
-            changelogTextView.setText(builder);
+        if (!TextUtils.isEmpty(appUpdate.changelog)) {
+            TextView changelogTextView = new TextView(getContext());
+            changelogTextView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+            changelogTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+            changelogTextView.setMovementMethod(new AndroidUtilities.LinkMovementMethodMy());
+            changelogTextView.setLinkTextColor(Theme.getColor(Theme.key_dialogTextLink));
+            changelogTextView.setText(Emoji.replaceEmoji(appUpdate.changelog, changelogTextView.getPaint().getFontMetricsInt(), false));
+            NotificationCenter.listenEmojiLoading(changelogTextView);
+            changelogTextView.setGravity(Gravity.LEFT | Gravity.TOP);
+            linearLayout.addView(changelogTextView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP, 23, 15, 23, 0));
         }
-        changelogTextView.setGravity(Gravity.LEFT | Gravity.TOP);
-        linearLayout.addView(changelogTextView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP, 23, 15, 23, 0));
 
         FrameLayout.LayoutParams frameLayoutParams = new FrameLayout.LayoutParams(LayoutHelper.MATCH_PARENT, AndroidUtilities.getShadowHeight(), Gravity.BOTTOM | Gravity.LEFT);
         frameLayoutParams.bottomMargin = AndroidUtilities.dp(130);
@@ -287,18 +294,30 @@ public class UpdateAppAlertDialog extends BottomSheet {
         shadow.setTag(1);
         container.addView(shadow, frameLayoutParams);
 
-        BottomSheetCell doneButton = new BottomSheetCell(context, false);
-        doneButton.setText(LocaleController.formatString("AppUpdateDownloadNow", R.string.AppUpdateDownloadNow), false);
-        doneButton.background.setOnClickListener(v -> {
-            FileLoader.getInstance(accountNum).loadFile(appUpdate.document, "update", FileLoader.PRIORITY_NORMAL, 1);
-            dismiss();
-        });
-        container.addView(doneButton, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 50, Gravity.LEFT | Gravity.BOTTOM, 0, 0, 0, 50));
+        ButtonWithCounterView doneButton = new ButtonWithCounterView(context, null);
+        final File file = ApplicationLoader.applicationLoaderInstance.getDownloadedUpdateFile();
+        if (file != null) {
+            doneButton.setText(LocaleController.formatString(R.string.AppUpdateNow), false);
+            doneButton.setOnClickListener(v -> {
+                if (file == null) return;
+                Activity activity = AndroidUtilities.findActivity(getContext());
+                if (activity == null) return;
+                AndroidUtilities.openForView(file, "DealsGram.apk", "application/vnd.android.package-archive", activity, null, false);
+                dismiss();
+            });
+        } else {
+            doneButton.setText(LocaleController.formatString(R.string.AppUpdateDownloadNow), false);
+            doneButton.setOnClickListener(v -> {
+                ApplicationLoader.applicationLoaderInstance.downloadUpdate();
+                dismiss();
+            });
+        }
+        container.addView(doneButton, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.FILL_HORIZONTAL | Gravity.BOTTOM, 20, 0, 20, 48 + 4 + 8));
 
-        BottomSheetCell scheduleButton = new BottomSheetCell(context, true);
+        ButtonWithCounterView scheduleButton = new ButtonWithCounterView(context, false, null);
         scheduleButton.setText(LocaleController.getString(R.string.AppUpdateRemindMeLater), false);
-        scheduleButton.background.setOnClickListener(v -> dismiss());
-        container.addView(scheduleButton, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 50, Gravity.LEFT | Gravity.BOTTOM, 0, 0, 0, 0));
+        scheduleButton.setOnClickListener(v -> dismiss());
+        container.addView(scheduleButton, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.FILL_HORIZONTAL | Gravity.BOTTOM, 20, 4, 20, 8));
     }
 
     private void runShadowAnimation(final int num, final boolean show) {

@@ -147,6 +147,10 @@ android {
 
         multiDexEnabled true
 
+        // DealsGram: api_id/api_hash live in the untracked local.properties, never in the repository.
+        buildConfigField "int", "DEALSGRAM_APP_ID", (getProps("DEALSGRAM_APP_ID") ?: "0")
+        buildConfigField "String", "DEALSGRAM_APP_HASH", "\"" + (getProps("DEALSGRAM_APP_HASH") ?: "") + "\""
+
         externalNativeBuild {
             cmake {
                 version '3.22.1'

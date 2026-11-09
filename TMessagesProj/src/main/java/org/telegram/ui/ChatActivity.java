@@ -1294,6 +1294,8 @@ public class ChatActivity extends BaseFragment implements
     public final static int OPTION_VIEW_STATISTICS = 115;
     public final static int OPTION_WELCOME_REVERT = 116;
     public final static int OPTION_SEND_MONEY = 117;
+    public final static int OPTION_DEALSGRAM_PUBLISH = 990;
+    public final static int OPTION_DEALSGRAM_EXPIRE = 991;
 
     private final static int[] allowedNotificationsDuringChatListAnimations = new int[]{
             NotificationCenter.messagesRead,
@@ -1704,6 +1706,9 @@ public class ChatActivity extends BaseFragment implements
     private final static int view_as_topics = 59;
 
     private final static int search = 40;
+    private final static int dealsgram_publish = 990;
+    private final static int dealsgram_queue = 992;
+    private final static int dealsgram_multi = 993;
 
     private final static int topic_close = 60;
     private final static int open_forum = 61;
@@ -3981,6 +3986,12 @@ public class ChatActivity extends BaseFragment implements
                     getSendMessagesHelper().sendMessage(SendMessagesHelper.SendMessageParams.of("/help", dialog_id, null, null, null, false, null, null, null, true, 0, 0, null, false));
                 } else if (id == bot_settings) {
                     getSendMessagesHelper().sendMessage(SendMessagesHelper.SendMessageParams.of("/settings", dialog_id, null, null, null, false, null, null, null, true, 0, 0, null, false));
+                } else if (id == dealsgram_publish) {
+                    org.telegram.dealsgram.AutoDealsPublisher.start(ChatActivity.this, dialog_id);
+                } else if (id == dealsgram_queue) {
+                    org.telegram.dealsgram.AutoDealsQueueSheet.open(ChatActivity.this, dialog_id);
+                } else if (id == dealsgram_multi) {
+                    org.telegram.dealsgram.AutoDealsPublisher.startMulti(ChatActivity.this, dialog_id);
                 } else if (id == search) {
                     openSearchWithText(isSupportedTags() ? "" : null);
                 } else if (id == translate) {
@@ -4390,6 +4401,13 @@ public class ChatActivity extends BaseFragment implements
 
             if (searchItem != null) {
                 headerItem.lazilyAddSubItem(search, R.drawable.msg_search, LocaleController.getString(R.string.Search));
+            }
+            // DealsGram: publish an offer through AutoDeals from channels the user can post in.
+            if (currentChat != null && ChatObject.isChannelAndNotMegaGroup(currentChat) && ChatObject.canPost(currentChat)) {
+                headerItem.lazilyAddSubItem(dealsgram_publish, R.drawable.msg_link, org.telegram.dealsgram.DealsGramText.get("PublishDeal"));
+                headerItem.lazilyAddSubItem(dealsgram_multi, R.drawable.msg_list, org.telegram.dealsgram.DealsGramText.get("MultiPost"));
+                headerItem.lazilyAddSubItem(dealsgram_queue, R.drawable.msg_calendar2, org.telegram.dealsgram.DealsGramText.get("UpcomingPosts"));
+                org.telegram.dealsgram.AutoDealsPublisher.prefetch(dialog_id);
             }
             if (ChatObject.isBoostSupported(currentChat) && (getUserConfig().isPremium() || ChatObject.isBoosted(chatInfo) || ChatObject.hasAdminRights(currentChat))) {
                 RLottieDrawable drawable = new RLottieDrawable(R.raw.boosts, dp(24), dp(24));
@@ -8208,7 +8226,10 @@ public class ChatActivity extends BaseFragment implements
                 byButtonPress[0] = false;
             }
 
-            if (fieldPanelShown == 5) {
+            if (fieldPanelShown == 6 && autoDealsDraft != null) {
+                // DealsGram: channels, note for all, schedule and queue of the AutoDeals post.
+                autoDealsDraft.showMenu(replyLayout);
+            } else if (fieldPanelShown == 5) {
                 new MessageSuggestionOfferSheet(context, currentAccount, dialog_id, messageSuggestionParams != null ? messageSuggestionParams: MessageSuggestionParams.empty(), this, getResourceProvider(), MessageSuggestionOfferSheet.MODE_INPUT, this::showFieldPanelForSuggestionParams).show();
             } else if (fieldPanelShown == 1 && editingMessageObject != null) {
                 if (editingMessageObject.needResendWhenEdit() && !isButtonPress) {
@@ -8277,6 +8298,8 @@ public class ChatActivity extends BaseFragment implements
                 fallbackFieldPanel();
             } else if (fieldPanelShown == 3) {
                 openAnotherForward();
+            } else if (fieldPanelShown == 6 && autoDealsDraft != null) {
+                autoDealsDraft.cancel();
             } else if (fieldPanelShown == 4) {
                 foundWebPage = null;
                 if (messagePreviewParams != null) {
@@ -11435,6 +11458,8 @@ public class ChatActivity extends BaseFragment implements
             showFieldPanelForForward(true, messagePreviewParams.forwardMessages.messages);
         } else if (editingMessageObject != null) {
             showFieldPanelForEdit(true, editingMessageObject);
+        } else if (autoDealsDraft != null) {
+            showFieldPanelForAutoDeals();
         } else {
             showFieldPanelForWebPage(false, null, true);
         }
@@ -14677,6 +14702,9 @@ public class ChatActivity extends BaseFragment implements
     }
 
     public void searchLinks(final CharSequence charSequence, final boolean force) {
+        if (autoDealsDraft != null) {
+            return;
+        }
         if (currentEncryptedChat != null && getMessagesController().secretWebpagePreview == 0 || editingMessageObject != null && (!editingMessageObject.isWebpage() || editingMessageObject.messageOwner.media.webpage instanceof TLRPC.TL_webPagePending)) {
             return;
         }
@@ -15385,6 +15413,14 @@ public class ChatActivity extends BaseFragment implements
         showFieldPanel(show, null, messageObjectToEdit, null, null, true, 0, null, false, 0, true);
     }
 
+    /** DealsGram: the AutoDeals post being edited in the field (org.telegram.dealsgram.AutoDealsDraft). */
+    public org.telegram.dealsgram.AutoDealsDraft autoDealsDraft;
+
+    /** DealsGram: the panel above the field for {@link #autoDealsDraft}: its image and an X to drop it. */
+    public void showFieldPanelForAutoDeals() {
+        showFieldPanel(true, null, null, null, null, true, 0, null, false, 0, null, true);
+    }
+
     public void showFieldPanelForSuggestionParams(MessageSuggestionParams suggestionParams) {
         showFieldPanel(true, null, null, null, null, true, 0, null, false, 0, suggestionParams, true);
     }
@@ -15409,7 +15445,7 @@ public class ChatActivity extends BaseFragment implements
         final int oldFieldPanelShown = fieldPanelShown;
         boolean showHint = false;
         if (show) {
-            if (messageObjectToReply == null && messageObjectsToForward == null && messageObjectToEdit == null && webPage == null && suggestionParams == null) {
+            if (messageObjectToReply == null && messageObjectsToForward == null && messageObjectToEdit == null && webPage == null && suggestionParams == null && autoDealsDraft == null) {
                 messagePreviewParams = null;
                 return;
             }
@@ -16065,6 +16101,19 @@ public class ChatActivity extends BaseFragment implements
                 if (isTon && spanArr[0] != null) {
                     spanArr[0].setColorKey(Theme.key_chat_replyPanelIcons);
                 }
+            } else if (autoDealsDraft != null) {
+                // DealsGram: the AutoDeals post in the field; its image is set below.
+                fieldPanelShown = 6;
+                if (oldFieldPanelShown != 0 && oldFieldPanelShown != fieldPanelShown) {
+                    replyLayout.switchLayouts();
+                }
+                if (foundWebPage != null) {
+                    foundWebPage = null;
+                    chatActivityEnterView.setWebPage(null, false);
+                }
+                replyLayout.current().icon.setImageResource(R.drawable.filled_link);
+                replyLayout.current().name.setText(autoDealsDraft.panelTitle());
+                replyLayout.current().obj.setText(Emoji.replaceEmoji(autoDealsDraft.panelSubtitle(), replyLayout.current().obj.getPaint().getFontMetricsInt(), false));
             }
 
             final ImageView replyIconImageView = replyLayout.current().icon;
@@ -16135,6 +16184,12 @@ public class ChatActivity extends BaseFragment implements
                 final boolean hasSpoiler = thumbMediaMessageObject.hasMediaSpoilers();
                 replyLayout.current().hasSpoiler = hasSpoiler;
                 replyImageView.setImage(ImageLocation.getForObject(replyImageLocation, photoSizeObject), hasSpoiler ? "5_5_b" : "50_50", ImageLocation.getForObject(thumbPhotoSize, photoSizeObject), hasSpoiler ? "5_5_b" : "50_50_b", null, size, cacheType, thumbMediaMessageObject);
+                replyImageView.setVisibility(View.VISIBLE);
+                layoutParams1.leftMargin = layoutParams2.leftMargin = layoutParams3.leftMargin = AndroidUtilities.dp(96);
+            }
+            if (fieldPanelShown == 6 && autoDealsDraft != null && autoDealsDraft.image() != null) {
+                replyImageView.setRoundRadius(AndroidUtilities.dp(2));
+                replyImageView.setImageBitmap(autoDealsDraft.image());
                 replyImageView.setVisibility(View.VISIBLE);
                 layoutParams1.leftMargin = layoutParams2.leftMargin = layoutParams3.leftMargin = AndroidUtilities.dp(96);
             }
@@ -30644,6 +30699,7 @@ public class ChatActivity extends BaseFragment implements
     public void onResume() {
         super.onResume();
         checkShowBlur(false);
+        org.telegram.dealsgram.AutoDealsDraft.restore(this);
         activityResumeTime = System.currentTimeMillis();
         if (openImport && getSendMessagesHelper().getImportingHistory(dialog_id) != null) {
             ImportingAlert alert = new ImportingAlert(getParentActivity(), null, this, themeDelegate);
@@ -30828,6 +30884,10 @@ public class ChatActivity extends BaseFragment implements
             replyMessage = replyingMessageObject;
             draftMessage = AndroidUtilities.getTrimmedString(chatActivityEnterView.getDraftMessage());
             searchWebpage = chatActivityEnterView.isMessageWebPageSearchEnabled();
+        }
+        // DealsGram: the AutoDeals post stays in memory, never in Telegram's draft, so it cannot be sent as a plain message.
+        if (autoDealsDraft != null && autoDealsDraft.stash()) {
+            draftMessage = null;
         }
 
         CharSequence[] message = new CharSequence[]{ignoreDraft ? null : draftMessage};
@@ -31885,6 +31945,23 @@ public class ChatActivity extends BaseFragment implements
                             i--;
                             break;
                     }
+                }
+            }
+
+            // DealsGram: a post with product links, also in other people's channels, can go out on the
+            // user's AutoDeals channels.
+            // In the user's own AutoDeals channel a published offer can also be marked as ended.
+            if (!suggestEdit && selectedObject != null && !org.telegram.dealsgram.AutoDealsPublisher.messageLinks(selectedObject).isEmpty()) {
+                boolean ownChannel = chatMode == MODE_DEFAULT && selectedObject.getId() > 0
+                    && org.telegram.dealsgram.AutoDealsPublisher.isLinkedChannel(dialog_id);
+                items.add(0, ownChannel ? org.telegram.dealsgram.DealsGramText.get("Republish") : org.telegram.dealsgram.DealsGramText.get("PublishOnMyChannels"));
+                options.add(0, OPTION_DEALSGRAM_PUBLISH);
+                icons.add(0, R.drawable.msg_link);
+                if (ownChannel) {
+                    items.add(1, org.telegram.dealsgram.DealsGramText.get("DealExpired"));
+                    options.add(1, OPTION_DEALSGRAM_EXPIRE);
+                    // Part of the subscription: on a Free channel it shows a lock and opens the plan sheet.
+                    icons.add(1, org.telegram.dealsgram.AutoDealsPublisher.canExpire(dialog_id) ? R.drawable.msg_block : R.drawable.msg_premium_lock2);
                 }
             }
 
@@ -34243,6 +34320,14 @@ public class ChatActivity extends BaseFragment implements
         }
         boolean preserveDim = false;
         switch (option) {
+            case OPTION_DEALSGRAM_PUBLISH: {
+                org.telegram.dealsgram.AutoDealsPublisher.publishFromMessage(this, dialog_id, selectedObject);
+                break;
+            }
+            case OPTION_DEALSGRAM_EXPIRE: {
+                org.telegram.dealsgram.AutoDealsPublisher.expireFromMessage(this, dialog_id, selectedObject);
+                break;
+            }
             case OPTION_RETRY: {
                 final MessageObject object = selectedObject;
                 final MessageObject.GroupedMessages group = selectedObjectGroup;

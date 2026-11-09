@@ -98,8 +98,49 @@ public class ApplicationLoaderImpl extends ApplicationLoader {
         return exists;
     }
 
+    // DealsGram: updates come from dealsgram.app (DealsGramUpdater), not from Telegram's help.getAppUpdate.
     @Override
-    public boolean showUpdateAppPopup(Context context, TLRPC.TL_help_appUpdate update, int account) {
+    public boolean isCustomUpdate() {
+        return true;
+    }
+
+    @Override
+    public BetaUpdate getUpdate() {
+        return DealsGramUpdater.getInstance().getUpdate();
+    }
+
+    @Override
+    public void checkUpdate(boolean force, Runnable whenDone) {
+        DealsGramUpdater.getInstance().checkForUpdate(force, whenDone);
+    }
+
+    @Override
+    public void downloadUpdate() {
+        DealsGramUpdater.getInstance().downloadUpdate();
+    }
+
+    @Override
+    public void cancelDownloadingUpdate() {
+        DealsGramUpdater.getInstance().cancelDownloadingUpdate();
+    }
+
+    @Override
+    public boolean isDownloadingUpdate() {
+        return DealsGramUpdater.getInstance().isDownloading();
+    }
+
+    @Override
+    public float getDownloadingUpdateProgress() {
+        return DealsGramUpdater.getInstance().getDownloadingProgress();
+    }
+
+    @Override
+    public File getDownloadedUpdateFile() {
+        return DealsGramUpdater.getInstance().getDownloadedFile();
+    }
+
+    @Override
+    public boolean showCustomUpdateAppPopup(Context context, BetaUpdate update, int account) {
         try {
             (new UpdateAppAlertDialog(context, update, account)).show();
         } catch (Exception e) {
